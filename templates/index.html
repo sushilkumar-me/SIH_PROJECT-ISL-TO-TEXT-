@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sign Language to Text</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-6">
+
+  <!-- Title -->
+  <h1 class="text-3xl font-bold mb-6 text-gray-800">🤟 Sign Language to Text</h1>
+
+  <!-- Webcam feed -->
+  <div class="bg-white shadow-lg rounded-2xl p-4 mb-6">
+    <img id="video" src="{{ url_for('video_feed1') }}" 
+         class="rounded-lg w-[640px] h-[480px] object-cover border-4 border-indigo-500">
+  </div>
+
+  <!-- Results Section -->
+  <div class="flex flex-col items-center space-y-4 w-full max-w-2xl">
+    <!-- Last word -->
+    <div class="bg-indigo-500 text-white px-6 py-3 rounded-xl shadow text-xl font-semibold">
+      Last Word: <span id="lastWord">None</span>
+    </div>
+
+    <!-- Full Sentence -->
+    <div class="bg-white text-gray-800 px-6 py-4 rounded-xl shadow w-full text-center text-lg">
+      <strong>Sentence:</strong> <span id="sentence">...</span>
+    </div>
+  </div>
+
+  <!-- Auto update -->
+  <script>
+    let lastSpokenWord = ""; // to avoid repeating speech unnecessarily
+
+    async function fetchResult() {
+      try {
+        const response = await fetch('/match-result');
+        const data = await response.json();
+
+        if (data.matched_label) {
+          const word = data.matched_label;
+          document.getElementById("lastWord").textContent = word;
+
+          // Speak the new word only if it's different
+          if (word !== lastSpokenWord) {
+            speakWord(word);
+            lastSpokenWord = word;
+          }
+        }
+
+        // Fetch the full sentence from example.txt
+        const sentenceResponse = await fetch('/example.txt');
+        if (sentenceResponse.ok) {
+          const sentenceText = await sentenceResponse.text();
+          document.getElementById("sentence").textContent = sentenceText.trim() || "...";
+        }
+
+      } catch (err) {
+        console.error("Error fetching result:", err);
+      }
+    }
+
+    function speakWord(word) {
+      const utterance = new SpeechSynthesisUtterance(word);
+      utterance.lang = "en-US";
+      speechSynthesis.speak(utterance);
+    }
+
+    setInterval(fetchResult, 2000); // update every 2s
+  </script>
+
+</body>
+</html>
